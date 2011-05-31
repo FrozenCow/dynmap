@@ -16,7 +16,7 @@ public class SimpleWebChatComponent extends Component {
         plugin.events.addListener("webchat", new Event.Listener<ChatEvent>() {
             @Override
             public void triggered(ChatEvent t) {
-                plugin.getServer().broadcastMessage("[WEB]" + t.name + ": " + t.message);
+                plugin.getServer().broadcastMessage("[WEB]" + t.name.replace('§','$') + ": " + t.message.replace('§','$'));
             }
         });
         
