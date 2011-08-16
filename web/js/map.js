@@ -738,6 +738,9 @@ DynMap.prototype = {
 				break;
 			}
 		}
+	},
+	sendWebMessage: function(type, message, completed, failed) {
+		$.postJSON({type: type, message: message}, this.options.url.sendwebmessage, completed, failed);
 	}
 	// TODO: Enable hash-links.
 /*	updateLink: function() {

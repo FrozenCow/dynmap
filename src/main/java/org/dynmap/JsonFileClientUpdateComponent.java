@@ -203,6 +203,36 @@ public class JsonFileClientUpdateComponent extends ClientUpdateComponent {
         ChatEvent event = new ChatEvent("web", name, message);
         plugin.events.trigger("webchat", event);
     }
+
+        protected void handleWebMessages() {
+        File webmessagesFile = getStandaloneFile("dynmap_webmessages.json");
+        if (webmessagesFile.exists() && lastTimestamp != 0) {
+            JSONArray jsonMsgs = null;
+            try {
+                Reader inputFileReader = new InputStreamReader(new FileInputStream(webmessagesFile), cs_utf8);
+                jsonMsgs = (JSONArray) parser.parse(inputFileReader);
+                inputFileReader.close();
+            } catch (IOException ex) {
+                Log.severe("Exception while reading JSON-file.", ex);
+            } catch (ParseException ex) {
+                Log.severe("Exception while parsing JSON-file.", ex);
+            }
+
+            if (jsonMsgs != null) {
+                Iterator<?> iter = jsonMsgs.iterator();
+                while (iter.hasNext()) {
+                    JSONObject o = (JSONObject) iter.next();
+                    String ts = String.valueOf(o.get("timestamp"));
+                    if(ts.equals("null")) ts = "0";
+                    if (Long.parseLong(ts) >= (lastTimestamp)) {
+                        String type = String.valueOf(o.get("type"));
+                        JSONObject message = (JSONObject)o.get("message");
+                        plugin.events.trigger("webmessage", new WebMessageEvent(type, message));
+                    }
+                }
+            }
+        }
+    }
     
     @Override
     public void dispose() {
