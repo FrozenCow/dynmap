@@ -29,9 +29,7 @@ public class RegionsComponent extends ClientComponent {
         
         // For internal webserver.
         String fname = configuration.getString("filename", "regions.yml");
-
         regiontype = configuration.getString("name", "WorldGuard");
-
         
         /* Load special handler for Towny */
         if(regiontype.equals("Towny")) {

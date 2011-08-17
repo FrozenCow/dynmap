@@ -68,12 +68,24 @@ import org.dynmap.permissions.BukkitPermissions;
 import org.dynmap.permissions.NijikokunPermissions;
 import org.dynmap.permissions.OpPermissions;
 import org.dynmap.permissions.PermissionProvider;
+import org.dynmap.servlet.ClientConfigurationServlet;
 import org.dynmap.web.HttpServer;
 import org.dynmap.web.handlers.ClientConfigurationHandler;
 import org.dynmap.web.handlers.FilesystemHandler;
+import org.mortbay.jetty.Connector;
+import org.mortbay.jetty.Server;
+import org.mortbay.jetty.handler.ContextHandlerCollection;
+import org.mortbay.jetty.handler.ResourceHandler;
+import org.mortbay.jetty.nio.SelectChannelConnector;
+import org.mortbay.jetty.servlet.Context;
+import org.mortbay.jetty.servlet.DefaultServlet;
+import org.mortbay.jetty.servlet.ServletHolder;
+import org.mortbay.jetty.webapp.WebAppContext;
 
 public class DynmapPlugin extends JavaPlugin {
-    public HttpServer webServer = null;
+    
+    public Server webServer = null;
+    public Context webContext = null;
     public MapManager mapManager = null;
     public PlayerList playerList;
     public ConfigurationNode configuration;
@@ -99,7 +111,7 @@ public class DynmapPlugin extends JavaPlugin {
         return mapManager;
     }
 
-    public HttpServer getWebServer() {
+    public Server getWebServer() {
         return webServer;
     }
 
@@ -295,18 +307,6 @@ public class DynmapPlugin extends JavaPlugin {
     }
 
     public void loadWebserver() {
-        InetAddress bindAddress;
-        {
-            String address = configuration.getString("webserver-bindaddress", "0.0.0.0");
-            try {
-                bindAddress = address.equals("0.0.0.0")
-                        ? null
-                        : InetAddress.getByName(address);
-            } catch (UnknownHostException e) {
-                bindAddress = null;
-            }
-        }
-        int port = configuration.getInteger("webserver-port", 8123);
         boolean allow_symlinks = configuration.getBoolean("allow-symlinks", false);
         boolean checkbannedips = configuration.getBoolean("check-banned-ips", true);
         int maxconnections = configuration.getInteger("max-sessions", 30);
@@ -328,17 +328,41 @@ public class DynmapPlugin extends JavaPlugin {
         	Log.verboseinfo("Web server is permitting symbolic links");
         else
         	Log.verboseinfo("Web server is not permitting symbolic links");        	
-        webServer = new HttpServer(bindAddress, port, checkbannedips, maxconnections);
-        webServer.handlers.put("/", new FilesystemHandler(getFile(configuration.getString("webpath", "web")), allow_symlinks));
-        webServer.handlers.put("/tiles/", new FilesystemHandler(tilesDirectory, allow_symlinks));
-        webServer.handlers.put("/up/configuration", new ClientConfigurationHandler(this));
+        
+        // TODO: Make use of checkbannedips and maxconnections.
+        
+        // Set up the webserver.
+        webServer = new org.mortbay.jetty.Server();
+        webServer.setStopAtShutdown(true);
+        Connector connector = new SelectChannelConnector();
+        connector.setPort(configuration.getInteger("webserver-port", 8123));
+        connector.setHost(configuration.getString("webserver-bindaddress", "0.0.0.0"));
+        webServer.addConnector(connector);
+
+        // Add handlers.
+        Context context = new Context(webServer, "/", false, false);
+        context.setResourceBase(getFile(configuration.getString("webpath", "web")).getAbsolutePath());
+        ServletHolder staticFilesServlet =  new ServletHolder(new DefaultServlet());
+        staticFilesServlet.setInitParameter("aliases", allow_symlinks ? "true" : "false");
+        staticFilesServlet.setInitParameter("dirAllowed", "false");
+        context.addServlet(staticFilesServlet, "/");
+        
+        context = new Context(webServer, "/tiles", false, false);
+        context.setResourceBase(tilesDirectory.getAbsolutePath());
+        ServletHolder tileFilesServlet =  new ServletHolder(new DefaultServlet());
+        tileFilesServlet.setInitParameter("aliases", allow_symlinks ? "true" : "false");
+        tileFilesServlet.setInitParameter("dirAllowed", "false");
+        context.addServlet(tileFilesServlet, "/");
+        
+        context = new Context(webServer, "/up", true, false);
+        context.addServlet(new ServletHolder(new ClientConfigurationServlet(this)), "/configuration");
     }
     
     public void startWebserver() {
         try {
-            webServer.startServer();
-        } catch (IOException e) {
-            Log.severe("Failed to start WebServer on " + webServer.getAddress() + ":" + webServer.getPort() + "!");
+            webServer.start();
+        } catch (Exception e) {
+            Log.severe("Failed to start WebServer on " + webServer.getConnectors()[0].getHost() + ":" + webServer.getConnectors()[0].getLocalPort() + "!");
         }
     }
 
@@ -359,7 +383,11 @@ public class DynmapPlugin extends JavaPlugin {
         }
 
         if (webServer != null) {
-            webServer.shutdown();
+            try {
+                webServer.stop();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             webServer = null;
         }
         /* Clean up all registered handlers */

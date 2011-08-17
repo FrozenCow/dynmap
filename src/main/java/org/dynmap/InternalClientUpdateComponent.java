@@ -33,9 +33,11 @@ public class InternalClientUpdateComponent extends ClientUpdateComponent {
             }
         });
         
-        plugin.webServer.handlers.put("/up/", new ClientUpdateHandler(plugin));
+        // TODO: Uncomment!
+        //plugin.webServer.handlers.put("/up/", new ClientUpdateHandler(plugin));
         
-        plugin.webServer.handlers.put("/up/sendwebmessage", new HttpHandler() {
+        // TODO: Uncomment!
+        /*plugin.webServer.handlers.put("/up/sendwebmessage", new HttpHandler() {
             private final JSONParser parser = new JSONParser();
             private Charset cs_utf8 = Charset.forName("UTF-8");
             @Override
@@ -81,7 +83,7 @@ public class InternalClientUpdateComponent extends ClientUpdateComponent {
             }};
 
             plugin.webServer.handlers.put("/up/sendmessage", messageHandler);
-        }
+        }*/
     }
     
     protected void webChat(String name, String message) {
