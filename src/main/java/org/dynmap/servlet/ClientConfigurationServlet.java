@@ -12,7 +12,6 @@ import org.dynmap.DynmapPlugin;
 import org.dynmap.DynmapWorld;
 import org.dynmap.Event;
 import org.json.simple.JSONObject;
-import org.mortbay.log.Log;
 
 public class ClientConfigurationServlet extends HttpServlet {
     private static final long serialVersionUID = 9106801553080522469L;
@@ -30,7 +29,6 @@ public class ClientConfigurationServlet extends HttpServlet {
     
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-        Log.info("HALLO");
         if (cachedConfiguration == null) {
             JSONObject configurationObject = new JSONObject();
             plugin.events.<JSONObject>trigger("buildclientconfiguration", configurationObject);

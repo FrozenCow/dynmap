@@ -1,15 +1,10 @@
 package org.dynmap;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -17,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -69,23 +65,12 @@ import org.dynmap.permissions.NijikokunPermissions;
 import org.dynmap.permissions.OpPermissions;
 import org.dynmap.permissions.PermissionProvider;
 import org.dynmap.servlet.ClientConfigurationServlet;
-import org.dynmap.web.HttpServer;
-import org.dynmap.web.handlers.ClientConfigurationHandler;
-import org.dynmap.web.handlers.FilesystemHandler;
-import org.mortbay.jetty.Connector;
-import org.mortbay.jetty.Server;
-import org.mortbay.jetty.handler.ContextHandlerCollection;
-import org.mortbay.jetty.handler.ResourceHandler;
-import org.mortbay.jetty.nio.SelectChannelConnector;
-import org.mortbay.jetty.servlet.Context;
-import org.mortbay.jetty.servlet.DefaultServlet;
-import org.mortbay.jetty.servlet.ServletHolder;
-import org.mortbay.jetty.webapp.WebAppContext;
+
+import Acme.Serve.FileServlet;
+import Acme.Serve.Serve;
 
 public class DynmapPlugin extends JavaPlugin {
-    
-    public Server webServer = null;
-    public Context webContext = null;
+    private Serve webServer = null;
     public MapManager mapManager = null;
     public PlayerList playerList;
     public ConfigurationNode configuration;
@@ -109,10 +94,6 @@ public class DynmapPlugin extends JavaPlugin {
     
     public MapManager getMapManager() {
         return mapManager;
-    }
-
-    public Server getWebServer() {
-        return webServer;
     }
 
     /* Add/Replace branches in configuration tree with contribution from a separate file */
@@ -307,6 +288,11 @@ public class DynmapPlugin extends JavaPlugin {
     }
 
     public void loadWebserver() {
+        Map arguments = new HashMap(20);
+        arguments.put(Serve.ARG_BINDADDRESS, configuration.getString("webserver-bindaddress", "0.0.0.0"));
+        arguments.put(Serve.ARG_PORT, configuration.getInteger("webserver-port", 8123));
+        arguments.put(Serve.ARG_MAX_CONN_USE, Math.max(2, configuration.getInteger("max-sessions", 30)));
+        
         boolean allow_symlinks = configuration.getBoolean("allow-symlinks", false);
         boolean checkbannedips = configuration.getBoolean("check-banned-ips", true);
         int maxconnections = configuration.getInteger("max-sessions", 30);
@@ -332,37 +318,17 @@ public class DynmapPlugin extends JavaPlugin {
         // TODO: Make use of checkbannedips and maxconnections.
         
         // Set up the webserver.
-        webServer = new org.mortbay.jetty.Server();
-        webServer.setStopAtShutdown(true);
-        Connector connector = new SelectChannelConnector();
-        connector.setPort(configuration.getInteger("webserver-port", 8123));
-        connector.setHost(configuration.getString("webserver-bindaddress", "0.0.0.0"));
-        webServer.addConnector(connector);
-
-        // Add handlers.
-        Context context = new Context(webServer, "/", false, false);
-        context.setResourceBase(getFile(configuration.getString("webpath", "web")).getAbsolutePath());
-        ServletHolder staticFilesServlet =  new ServletHolder(new DefaultServlet());
-        staticFilesServlet.setInitParameter("aliases", allow_symlinks ? "true" : "false");
-        staticFilesServlet.setInitParameter("dirAllowed", "false");
-        context.addServlet(staticFilesServlet, "/");
-        
-        context = new Context(webServer, "/tiles", false, false);
-        context.setResourceBase(tilesDirectory.getAbsolutePath());
-        ServletHolder tileFilesServlet =  new ServletHolder(new DefaultServlet());
-        tileFilesServlet.setInitParameter("aliases", allow_symlinks ? "true" : "false");
-        tileFilesServlet.setInitParameter("dirAllowed", "false");
-        context.addServlet(tileFilesServlet, "/");
-        
-        context = new Context(webServer, "/up", true, false);
-        context.addServlet(new ServletHolder(new ClientConfigurationServlet(this)), "/configuration");
+        webServer = new Serve(arguments, System.out);
+        webServer.addServlet("/", new org.dynmap.servlet.FileServlet(getFile(getWebPath()).getAbsolutePath()));
+        webServer.addServlet("/tiles", new org.dynmap.servlet.FileServlet(tilesDirectory.getAbsolutePath()));
     }
     
     public void startWebserver() {
         try {
-            webServer.start();
+            webServer.runInBackground();
         } catch (Exception e) {
-            Log.severe("Failed to start WebServer on " + webServer.getConnectors()[0].getHost() + ":" + webServer.getConnectors()[0].getLocalPort() + "!");
+            //Log.severe("Failed to start WebServer on " + webServer.getConnectors()[0].getHost() + ":" + webServer.getConnectors()[0].getLocalPort() + "!");
+            Log.severe("Failed to start WebServer on " + webServer.getInitParameter(Serve.ARG_BINDADDRESS) + ":" + webServer.getInitParameter(Serve.ARG_PORT) + "!");
         }
     }
 
@@ -384,7 +350,7 @@ public class DynmapPlugin extends JavaPlugin {
 
         if (webServer != null) {
             try {
-                webServer.stop();
+                webServer.stopBackground();
             } catch (Exception e) {
                 e.printStackTrace();
             }
