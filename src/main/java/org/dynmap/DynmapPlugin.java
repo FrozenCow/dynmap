@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.servlet.http.HttpServlet;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -319,8 +321,13 @@ public class DynmapPlugin extends JavaPlugin {
         
         // Set up the webserver.
         webServer = new Serve(arguments, System.out);
-        webServer.addServlet("/", new org.dynmap.servlet.FileServlet(getFile(getWebPath()).getAbsolutePath()));
-        webServer.addServlet("/tiles", new org.dynmap.servlet.FileServlet(tilesDirectory.getAbsolutePath()));
+        addServlet("/", new org.dynmap.servlet.FileServlet(getFile(getWebPath()).getAbsolutePath()));
+        addServlet("/tiles", new org.dynmap.servlet.FileServlet(tilesDirectory.getAbsolutePath()));
+        addServlet("/up/configuration", new org.dynmap.servlet.ClientConfigurationServlet(this));
+    }
+    
+    public void addServlet(String path, HttpServlet servlet) {
+        webServer.addServlet(path, servlet);
     }
     
     public void startWebserver() {

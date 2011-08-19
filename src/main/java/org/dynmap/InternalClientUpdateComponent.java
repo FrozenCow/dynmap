@@ -3,6 +3,7 @@ package org.dynmap;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import org.dynmap.Event.Listener;
+import org.dynmap.servlet.ClientUpdateServlet;
 import org.dynmap.web.HttpField;
 import org.dynmap.web.HttpHandler;
 import org.dynmap.web.HttpMethod;
@@ -33,6 +34,7 @@ public class InternalClientUpdateComponent extends ClientUpdateComponent {
             }
         });
         
+        plugin.addServlet("/up/", new ClientUpdateServlet(plugin));
         // TODO: Uncomment!
         //plugin.webServer.handlers.put("/up/", new ClientUpdateHandler(plugin));
         
