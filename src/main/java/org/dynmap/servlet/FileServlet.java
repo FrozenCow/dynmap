@@ -26,7 +26,9 @@ import java.net.URLDecoder;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 import javax.servlet.ServletException;
@@ -270,16 +272,10 @@ public class FileServlet extends HttpServlet {
         // Prepare and initialize response --------------------------------------------------------
 
         // Get content type by file name and set default GZIP support and content disposition.
-        String contentType = getServletContext().getMimeType(fileName);
         boolean acceptsGzip = false;
         String disposition = "inline";
 
-        // If content type is unknown, then set the default value.
-        // For all content types, see: http://www.w3schools.com/media/media_mimeref.asp
-        // To add new content types, add new mime-mapping entry in web.xml.
-        if (contentType == null) {
-            contentType = "application/octet-stream";
-        }
+        String contentType = getContentType(fileName);
 
         // If content type is text, then determine whether GZIP content encoding is supported by
         // the browser and expand content type with the one and right character encoding.
@@ -288,7 +284,6 @@ public class FileServlet extends HttpServlet {
             acceptsGzip = acceptEncoding != null && accepts(acceptEncoding, "gzip");
             contentType += ";charset=UTF-8";
         } 
-
         // Else, expect for images, determine content disposition. If content type is supported by
         // the browser, then set to inline, else attachment which will pop a 'save as' dialogue.
         else if (!contentType.startsWith("image")) {
@@ -389,6 +384,34 @@ public class FileServlet extends HttpServlet {
 
     // Helpers (can be refactored to public utility class) ----------------------------------------
 
+    
+    final static Map<String, String> mimeTypes = new HashMap<String, String>() {{
+        this.put(".html", "text/html");
+        this.put(".htm", "text/html");
+        this.put(".js", "text/javascript");
+        this.put(".png", "image/png");
+        this.put(".jpg", "image/jpeg");
+        this.put(".css", "text/css");
+        this.put(".txt", "text/plain");
+    }};
+    public String getContentType(String fileName) {
+        // Don't use getServetContext!
+        /*String contentType = getServletContext().getMimeType(fileName);
+        */
+        String contentType = null;
+        int i = fileName.lastIndexOf('.');
+        if (i >= 0) {
+            String extension = fileName.substring(i);
+            contentType = mimeTypes.get(extension);
+        }
+        
+        if (contentType == null) {
+            contentType = "application/octet-stream";
+        }
+        
+        return contentType;
+    }
+    
     /**
      * Returns true if the given accept header accepts the given value.
      * @param acceptHeader The accept header.
