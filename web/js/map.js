@@ -360,7 +360,8 @@ DynMap.prototype = {
 		var prevzoom = me.map.getZoom(); 					
 
 		if (me.maptype) {
-			me.map.removeLayer(me.maptype);
+			me.layercontrol.removeLayer(me.maptype);
+			//me.map.removeLayer(me.maptype);
 		}
 		
 		var prevmap = me.maptype;
@@ -397,6 +398,7 @@ DynMap.prototype = {
 			me.map.setZoom(prevzoom);
 		}
 		me.map.addLayer(me.maptype);
+		//me.layercontrol.addBaseLayer(me.maptype, 'Tiles');
 				
 		if (worldChanged) {
 			$(me).trigger('worldchanged');
