@@ -12,20 +12,22 @@ import java.util.logging.Level;
 import org.bukkit.util.config.Configuration;
 import org.dynmap.ConfigurationNode;
 import org.dynmap.Log;
-import org.dynmap.web.HttpRequest;
-import org.dynmap.web.HttpResponse;
 import org.dynmap.web.Json;
-import org.dynmap.web.handlers.FileHandler;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 
-public class RegionHandler extends FileHandler {
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+public class RegionServlet extends HttpServlet {
     private ConfigurationNode regions;
     private String regiontype;
     private TownyConfigHandler towny;
     private FactionsConfigHandler factions;
-    public RegionHandler(ConfigurationNode regions) {
+    public RegionServlet(ConfigurationNode regions) {
         this.regions = regions;
         regiontype = regions.getString("name", "WorldGuard");
         if(regiontype.equals("Towny")) {
@@ -35,14 +37,16 @@ public class RegionHandler extends FileHandler {
             factions = new FactionsConfigHandler(regions);
         }
     }
+    
     @Override
-    protected InputStream getFileInput(String path, HttpRequest request, HttpResponse response) {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String path = req.getPathInfo();
         if(regions == null)
-            return null;
+            return;
         /* Right path? */
         if(path.endsWith(".json") == false)
-            return null;
-
+            return;
+        
         String worldname = path.substring(0, path.lastIndexOf(".json"));
         Configuration regionConfig = null;
         File infile;
@@ -61,7 +65,7 @@ public class RegionHandler extends FileHandler {
              */
             File basepath = new File("plugins", regiontype);
             if(basepath.exists() == false)
-                return null;
+                return;
             if(regions.getBoolean("useworldpath", false)) {
                 regionFile = worldname + "/" + regions.getString("filename", "regions.yml");
                 infile = new File(basepath, regionFile);
@@ -78,14 +82,13 @@ public class RegionHandler extends FileHandler {
             }
             //File didn't exist
             if(regionConfig == null)
-                return null;
+                return;
             regionConfig.load();
             /* Parse region data and store in MemoryInputStream */
             String bnode = regions.getString("basenode", "regions");
             regionData = (Map<?, ?>) regionConfig.getProperty(bnode);
             if(regionData == null) {
                 Log.severe("Region data from " + infile.getPath() + " does not include basenode '" + bnode + "'");
-                return null;
             }
         }
         /* See if we have explicit list of regions to report - limit to this list if we do */
@@ -121,12 +124,11 @@ public class RegionHandler extends FileHandler {
             ByteArrayOutputStream fos = new ByteArrayOutputStream();
             fos.write(Json.stringifyJson(regionData).getBytes());
             fos.close();
-            return new ByteArrayInputStream(fos.toByteArray());
+            resp.getOutputStream().write(fos.toByteArray());
         } catch (FileNotFoundException ex) {
-            log.log(Level.SEVERE, "Exception while writing JSON-file.", ex);
+            Log.severe("Exception while writing JSON-file.", ex);
         } catch (IOException ioe) {
-            log.log(Level.SEVERE, "Exception while writing JSON-file.", ioe);
+            Log.severe("Exception while writing JSON-file.", ioe);
         }        
-        return null;
     }
 }

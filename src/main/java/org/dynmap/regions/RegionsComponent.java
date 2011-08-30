@@ -34,15 +34,15 @@ public class RegionsComponent extends ClientComponent {
         /* Load special handler for Towny */
         if(regiontype.equals("Towny")) {
             towny = new TownyConfigHandler(configuration);
-            plugin.webServer.handlers.put("/standalone/towny_*", new RegionHandler(configuration));
+            plugin.addServlet("/standalone/towny_*", new RegionServlet(configuration));
         }
         /* Load special handler for Factions */
         else if(regiontype.equals("Factions")) {
             factions = new FactionsConfigHandler(configuration);
-            plugin.webServer.handlers.put("/standalone/factions_*", new RegionHandler(configuration));
+            plugin.addServlet("/standalone/factions_*", new RegionServlet(configuration));
         }
         else {
-            plugin.webServer.handlers.put("/standalone/" + fname.substring(0, fname.lastIndexOf('.')) + "_*", new RegionHandler(configuration));
+            plugin.addServlet("/standalone/" + fname.substring(0, fname.lastIndexOf('.')) + "_*", new RegionServlet(configuration));
             
         }
         // For external webserver.
