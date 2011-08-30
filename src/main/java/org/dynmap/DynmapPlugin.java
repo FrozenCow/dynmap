@@ -310,7 +310,8 @@ public class DynmapPlugin extends JavaPlugin {
                 }
             }
         }
-        HttpServer.setCustomHeaders(custhdrs);
+        // TODO: Enable custom headers for Servlets.
+        //HttpServer.setCustomHeaders(custhdrs);
         
         if(allow_symlinks)
         	Log.verboseinfo("Web server is permitting symbolic links");
