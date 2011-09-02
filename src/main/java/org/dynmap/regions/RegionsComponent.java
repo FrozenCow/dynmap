@@ -171,4 +171,9 @@ public class RegionsComponent extends ClientComponent {
         }
     }
 
+    @Override
+    public void dispose() {
+        writerTimer.cancel();
+        super.dispose();
+    }
 }
