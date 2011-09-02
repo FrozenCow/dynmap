@@ -4,22 +4,30 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 import org.bukkit.World;
+import org.bukkit.scheduler.BukkitScheduler;
 import org.dynmap.ClientComponent;
 import org.dynmap.ClientUpdateEvent;
 import org.dynmap.ConfigurationNode;
 import org.dynmap.DynmapPlugin;
+import org.dynmap.DynmapWorld;
 import org.dynmap.Event;
 import org.dynmap.Log;
 import org.dynmap.web.Json;
 
 public class RegionsComponent extends ClientComponent {
 
+    private Timer writerTimer = new Timer(true);
     private TownyConfigHandler towny;
     private FactionsConfigHandler factions;
     private String regiontype;
@@ -34,36 +42,50 @@ public class RegionsComponent extends ClientComponent {
         /* Load special handler for Towny */
         if(regiontype.equals("Towny")) {
             towny = new TownyConfigHandler(configuration);
-            plugin.addServlet("/standalone/towny_*", new RegionServlet(configuration));
         }
         /* Load special handler for Factions */
         else if(regiontype.equals("Factions")) {
             factions = new FactionsConfigHandler(configuration);
-            plugin.addServlet("/standalone/factions_*", new RegionServlet(configuration));
         }
-        else {
-            plugin.addServlet("/standalone/" + fname.substring(0, fname.lastIndexOf('.')) + "_*", new RegionServlet(configuration));
-            
-        }
-        // For external webserver.
-        //Parse region file for multi world style
-        if (configuration.getBoolean("useworldpath", false)) {
-            plugin.events.addListener("clientupdatewritten", new Event.Listener<ClientUpdateEvent>() {
-                @Override
-                public void triggered(ClientUpdateEvent t) {
-                    World world = t.world.world;
-                    parseRegionFile(world.getName(), world.getName() + "/" + configuration.getString("filename", "regions.yml"), configuration.getString("filename", "regions.yml").replace(".", "_" + world.getName() + ".yml"));
+        
+        final BukkitScheduler scheduler = plugin.getServer().getScheduler();
+        final boolean useworldpath = configuration.getBoolean("useworldpath", false);
+        writerTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                String[] worldNames;
+                
+                // Getting world-names on Minecraft's thread.
+                try {
+                    worldNames = scheduler.callSyncMethod(plugin, new Callable<String[]>() {
+                        @Override
+                        public String[] call() throws Exception {
+                            Collection<DynmapWorld> worlds = plugin.mapManager.getWorlds();
+                            String[] worldNames = new String[worlds.size()];
+                            int index = 0;
+                            for(DynmapWorld world : worlds) {
+                                worldNames[index] = world.world.getName();
+                                index++;
+                            }
+                            return worldNames;
+                        }
+                    }).get();
+                } catch (InterruptedException e) {
+                    return;
+                } catch (ExecutionException e) {
+                    return;
                 }
-            });
-        } else {
-            plugin.events.addListener("clientupdatewritten", new Event.Listener<ClientUpdateEvent>() {
-                @Override
-                public void triggered(ClientUpdateEvent t) {
-                    World world = t.world.world;
-                    parseRegionFile(world.getName(), configuration.getString("filename", "regions.yml"), configuration.getString("filename", "regions.yml").replace(".", "_" + world.getName() + ".yml"));
+
+                // Parse+write region-files for all worlds.
+                for(String worldName : worldNames) {
+                    if (useworldpath) {
+                        parseRegionFile(worldName, worldName + "/" + configuration.getString("filename", "regions.yml"), configuration.getString("filename", "regions.yml").replace(".", "_" + worldName + ".yml"));
+                    } else {
+                        parseRegionFile(worldName, configuration.getString("filename", "regions.yml"), configuration.getString("filename", "regions.yml").replace(".", "_" + worldName + ".yml"));
+                    }
                 }
-            });
-        }
+            }
+        }, 0, 5000);
     }
 
     //handles parsing and writing region json files
