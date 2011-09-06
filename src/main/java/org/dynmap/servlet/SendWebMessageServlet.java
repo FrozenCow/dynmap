@@ -12,6 +12,8 @@ import org.dynmap.DynmapPlugin;
 import org.dynmap.Log;
 import org.dynmap.WebMessageEvent;
 import org.dynmap.web.HttpStatus;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;

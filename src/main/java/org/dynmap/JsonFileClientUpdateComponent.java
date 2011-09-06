@@ -45,6 +45,7 @@ public class JsonFileClientUpdateComponent extends ClientUpdateComponent {
                 if (allowwebchat) {
                     handleWebChat();
                 }
+                handleWebMessages();
                 lastTimestamp = currentTimestamp;
                 MapManager.scheduleDelayedJob(this, jsonInterval);
             }}, jsonInterval);
@@ -204,7 +205,7 @@ public class JsonFileClientUpdateComponent extends ClientUpdateComponent {
         plugin.events.trigger("webchat", event);
     }
 
-        protected void handleWebMessages() {
+    protected void handleWebMessages() {
         File webmessagesFile = getStandaloneFile("dynmap_webmessages.json");
         if (webmessagesFile.exists() && lastTimestamp != 0) {
             JSONArray jsonMsgs = null;
