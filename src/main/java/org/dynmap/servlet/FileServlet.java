@@ -50,7 +50,6 @@ public class FileServlet extends HttpServlet {
     // Constants ----------------------------------------------------------------------------------
 
     private static final int DEFAULT_BUFFER_SIZE = 10240; // ..bytes = 10KB.
-    private static final long DEFAULT_EXPIRE_TIME = 604800000L; // ..ms = 1 week.
     private static final String MULTIPART_BOUNDARY = "MULTIPART_BYTERANGES";
 
     // Properties ---------------------------------------------------------------------------------
@@ -298,7 +297,6 @@ public class FileServlet extends HttpServlet {
         response.setHeader("Accept-Ranges", "bytes");
         response.setHeader("ETag", eTag);
         response.setDateHeader("Last-Modified", lastModified);
-        response.setDateHeader("Expires", System.currentTimeMillis() + DEFAULT_EXPIRE_TIME);
 
 
         // Send requested file (part(s)) to client ------------------------------------------------
