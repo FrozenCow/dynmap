@@ -241,7 +241,14 @@ public class FileServlet extends HttpServlet {
 
             // If any valid If-Range header, then process each part of byte range.
             if (ranges.isEmpty()) {
-                for (String part : range.substring(6).split(",")) {
+                String[] rangesParts = range.substring(6).split(",");
+                
+                if (rangesParts.length > 1) {
+                    response.setHeader("Content-Range", "bytes */" + length); // Required in 416.
+                    response.sendError(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
+                    return;
+                }
+                for (String part : rangesParts) {
                     // Assuming a file with length of 100, the following examples returns bytes at:
                     // 50-80 (50 to 80), 40- (40 to length=100), -20 (length-20=80 to length=100).
                     long start = sublong(part, 0, part.indexOf("-"));
