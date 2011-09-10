@@ -56,6 +56,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.dynmap.authentication.UserStore;
 import org.dynmap.debug.Debug;
 import org.dynmap.debug.Debugger;
 import org.dynmap.hdmap.HDBlockModels;
@@ -74,6 +75,7 @@ import Acme.Serve.Serve;
 public class DynmapPlugin extends JavaPlugin {
     private Serve webServer = null;
     public MapManager mapManager = null;
+    public UserStore userStore;
     public PlayerList playerList;
     public ConfigurationNode configuration;
     public HashSet<String> enabledTriggers = new HashSet<String>();
@@ -258,6 +260,8 @@ public class DynmapPlugin extends JavaPlugin {
         mapManager.startRendering();
 
         playerfacemgr = new PlayerFaces(this);
+        
+        userStore = new UserStore(this);
         
         loadWebserver();
 
@@ -696,7 +700,9 @@ public class DynmapPlugin extends JavaPlugin {
         "radiusrender",
         "reload",
         "stats",
-        "resetstats" }));
+        "resetstats",
+        "setwebuser"
+        }));
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String commandLabel, String[] args) {
@@ -831,6 +837,11 @@ public class DynmapPlugin extends JavaPlugin {
                     mapManager.resetStats(sender, null);
                 else
                     mapManager.resetStats(sender, args[1]);
+            } else if (c.equals("setwebuser") && checkPlayerPermission(sender, "setwebuser")) {
+                if (player != null) {
+                    userStore.setOpenID(player.getName(), args[1]);
+                    sender.sendMessage("You can now log into Dynmap.");
+                }
             }
             return true;
         }
