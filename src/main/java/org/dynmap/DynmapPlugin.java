@@ -305,17 +305,7 @@ public class DynmapPlugin extends JavaPlugin {
         boolean checkbannedips = configuration.getBoolean("check-banned-ips", true);
         int maxconnections = configuration.getInteger("max-sessions", 30);
         if(maxconnections < 2) maxconnections = 2;
-        /* Load customized response headers, if any */
-        ConfigurationNode custhttp = configuration.getNode("http-response-headers");
-        HashMap<String, String> custhdrs = new HashMap<String,String>();
-        if(custhttp != null) {
-            for(String k : custhttp.keySet()) {
-                String v = custhttp.getString(k);
-                if(v != null) {
-                    custhdrs.put(k, v);
-                }
-            }
-        }
+        
         // TODO: Enable custom headers for Servlets.
         //HttpServer.setCustomHeaders(custhdrs);
         
@@ -330,6 +320,17 @@ public class DynmapPlugin extends JavaPlugin {
         webServer = new Serve(arguments, System.out);
         mainServlet = new MainServlet();
         webServer.addServlet("/", mainServlet);
+        
+        /* Load customized response headers, if any */
+        ConfigurationNode custhttp = configuration.getNode("http-response-headers");
+        if(custhttp != null) {
+            for(String k : custhttp.keySet()) {
+                String v = custhttp.getString(k);
+                if(v != null) {
+                    mainServlet.customHeaders.add(new MainServlet.Header(k, v));
+                }
+            }
+        }
         
         addServlet("/", new org.dynmap.servlet.FileServlet(getFile(getWebPath()).getAbsolutePath()));
         addServlet("/tiles", new org.dynmap.servlet.FileServlet(tilesDirectory.getAbsolutePath()));

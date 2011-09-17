@@ -15,7 +15,16 @@ import javax.servlet.http.HttpServletResponse;
 import org.dynmap.Log;
 
 public class MainServlet extends HttpServlet {
-    public class Registration {
+    public static class Header {
+        public String name;
+        public String value;
+        public Header(String name, String value) {
+            this.name = name;
+            this.value = value;
+        }
+    }
+    
+    private static class Registration {
         public String pattern;
         public HttpServlet servlet;
         
@@ -25,13 +34,8 @@ public class MainServlet extends HttpServlet {
         }
     }
     
-    public class Header {
-        public String name;
-        public String value;
-    }
-    
     List<Registration> registrations = new LinkedList<Registration>();
-    List<Header> customHeaders = new LinkedList<Header>();
+    public List<Header> customHeaders = new LinkedList<Header>();
     
     public void addServlet(String pattern, HttpServlet servlet) {
         registrations.add(new Registration(pattern, servlet));
