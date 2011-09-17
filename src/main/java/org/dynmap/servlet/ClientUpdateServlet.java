@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.dynmap.ClientUpdateEvent;
 import org.dynmap.DynmapPlugin;
 import org.dynmap.DynmapWorld;
+import org.dynmap.Log;
 import org.dynmap.web.HttpField;
 import org.json.simple.JSONObject;
 
@@ -25,20 +26,13 @@ public class ClientUpdateServlet extends HttpServlet {
         this.plugin = plugin;
     }
 
-    Pattern updatePathPattern = Pattern.compile("/world/([^/]+)/([0-9]*)");
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String path = req.getPathInfo();
-        Matcher match = updatePathPattern.matcher(path);
+        String worldName = String.valueOf(req.getAttribute("world"));
+        String timeKey = String.valueOf(req.getAttribute("time"));
 
-        if (!match.matches()) {
-            resp.sendError(403);
-            return;
-        }
-
-        String worldName = match.group(1);
-        String timeKey = match.group(2);
-
+        Log.info(worldName);
+        
         DynmapWorld dynmapWorld = null;
         if(plugin.mapManager != null) {
             dynmapWorld = plugin.mapManager.getWorld(worldName);
@@ -50,11 +44,9 @@ public class ClientUpdateServlet extends HttpServlet {
         long current = System.currentTimeMillis();
         long since = 0;
 
-        if (path.length() > 0) {
-            try {
-                since = Long.parseLong(timeKey);
-            } catch (NumberFormatException e) {
-            }
+        try {
+            since = Long.parseLong(timeKey);
+        } catch (NumberFormatException e) {
         }
 
         JSONObject u = new JSONObject();

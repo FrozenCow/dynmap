@@ -68,12 +68,14 @@ import org.dynmap.permissions.NijikokunPermissions;
 import org.dynmap.permissions.OpPermissions;
 import org.dynmap.permissions.PermissionProvider;
 import org.dynmap.servlet.ClientConfigurationServlet;
+import org.dynmap.servlet.MainServlet;
 
 import Acme.Serve.FileServlet;
 import Acme.Serve.Serve;
 
 public class DynmapPlugin extends JavaPlugin {
     private Serve webServer = null;
+    private MainServlet mainServlet = null;
     public MapManager mapManager = null;
     public UserStore userStore;
     public PlayerList playerList;
@@ -326,13 +328,16 @@ public class DynmapPlugin extends JavaPlugin {
         
         // Set up the webserver.
         webServer = new Serve(arguments, System.out);
+        mainServlet = new MainServlet();
+        webServer.addServlet("/", mainServlet);
+        
         addServlet("/", new org.dynmap.servlet.FileServlet(getFile(getWebPath()).getAbsolutePath()));
         addServlet("/tiles", new org.dynmap.servlet.FileServlet(tilesDirectory.getAbsolutePath()));
         addServlet("/up/configuration", new org.dynmap.servlet.ClientConfigurationServlet(this));
     }
     
     public void addServlet(String path, HttpServlet servlet) {
-        webServer.addServlet(path, servlet);
+        mainServlet.addServlet(path, servlet);
     }
     
     public void startWebserver() {

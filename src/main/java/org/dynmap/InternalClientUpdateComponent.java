@@ -11,7 +11,7 @@ public class InternalClientUpdateComponent extends ClientUpdateComponent {
     public InternalClientUpdateComponent(final DynmapPlugin plugin, final ConfigurationNode configuration) {
         super(plugin, configuration);
         
-        plugin.addServlet("/up/", new ClientUpdateServlet(plugin));
+        plugin.addServlet("/up/world/{world}/{time}", new ClientUpdateServlet(plugin));
         plugin.addServlet("/up/sendwebmessage", new SendWebMessageServlet(plugin));
         
         // TODO: Put WebChat related code in another component.
