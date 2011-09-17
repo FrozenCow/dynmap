@@ -30,8 +30,6 @@ public class ClientUpdateServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String worldName = String.valueOf(req.getAttribute("world"));
         String timeKey = String.valueOf(req.getAttribute("time"));
-
-        Log.info(worldName);
         
         DynmapWorld dynmapWorld = null;
         if(plugin.mapManager != null) {
