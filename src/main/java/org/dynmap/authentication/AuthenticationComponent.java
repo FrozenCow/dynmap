@@ -1,14 +1,10 @@
 package org.dynmap.authentication;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URI;
 import java.net.URLEncoder;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
@@ -18,10 +14,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.dynmap.Component;
 import org.dynmap.ConfigurationNode;
 import org.dynmap.DynmapPlugin;
-import org.dynmap.Log;
-import org.dynmap.WebMessageEvent;
-import org.json.simple.JSONAware;
-import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.openid4java.OpenIDException;
 import org.openid4java.association.AssociationSessionType;
@@ -34,7 +26,6 @@ import org.openid4java.discovery.DiscoveryInformation;
 import org.openid4java.discovery.Identifier;
 import org.openid4java.message.AuthRequest;
 import org.openid4java.message.ParameterList;
-import org.openid4java.message.ax.FetchRequest;
 
 public class AuthenticationComponent extends Component {
     final ConsumerManager consumerManager;
@@ -78,7 +69,8 @@ public class AuthenticationComponent extends Component {
                     List discoveries = consumerManager.discover(user.OpenID);
                     DiscoveryInformation discovered = consumerManager.associate(discoveries);
                     req.getSession().setAttribute("openid-disc", discovered);
-                    AuthRequest authReq = consumerManager.authenticate(discovered, verifyURL + "?playername=" + URLEncoder.encode(playername, "UTF-8") + "&originalurl=" + URLEncoder.encode(originalURL, "UTF-8"));
+                    req.getSession().setAttribute("authenticatinguser", user);
+                    AuthRequest authReq = consumerManager.authenticate(discovered, verifyURL + "?originalurl=" + URLEncoder.encode(originalURL, "UTF-8"));
                     
                     // For now, we don't need the Email-extension
                     /*FetchRequest fetch = FetchRequest.createFetchRequest();
@@ -121,7 +113,10 @@ public class AuthenticationComponent extends Component {
                     ParameterList response = new ParameterList(req.getParameterMap());
                     
                     DiscoveryInformation discovered = (DiscoveryInformation)req.getSession().getAttribute("openid-disc");
+                    User user = (User)req.getSession().getAttribute("authenticatinguser");
                     req.getSession().removeAttribute("openid-disc");
+                    req.getSession().removeAttribute("authenticatinguser");
+                    
                     
                     // extract the receiving URL from the HTTP request
                     StringBuffer receivingURL = req.getRequestURL();
@@ -138,10 +133,9 @@ public class AuthenticationComponent extends Component {
                     
                     if (verified != null) {
                         String identifier = verified.getIdentifier();
-                        User user = plugin.userStore.getUserByOpenID(identifier);
 
                         // Strange situation
-                        if (user == null || !user.PlayerName.equals(req.getParameter("playername"))) {
+                        if (user == null) {
                             resp.setContentType("text/plain");
                             ServletOutputStream s = resp.getOutputStream();
                             s.print("Login failed. You have not yet associated your game character with this account. Go in-game and type '/dynmap setwebuser " + identifier + "' and log in again.");
@@ -165,5 +159,11 @@ public class AuthenticationComponent extends Component {
         plugin.addServlet("/up/authentication/test", authenticationTestServlet);
         plugin.addServlet("/up/authentication/request", authenticationRequestServlet);
         plugin.addServlet("/up/authentication/verify", authenticationVerifyServlet);
+        plugin.addServlet("/up/authentication/logout", new HttpServlet() {
+            @Override
+            protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+                req.getSession().removeAttribute("user");
+            }
+        });
     }
 }

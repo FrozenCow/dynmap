@@ -46,14 +46,14 @@ componentconstructors['authentication'] = function(dynmap, configuration) {
 				'box-shadow': '0px 0px 100px #000'
 			}).appendTo(document.body);
 		var dialogcontent = dialog;
-		var playerNameInput = $('<input/>').addClass('playernameinput').appendTo(dialogcontent);
-		var authenticateButton = $('<input type="button" />').click(authenticate_click).appendTo(dialogcontent).focus();
+		var playerNameInput = $('<input/>').addClass('playernameinput').appendTo(dialogcontent).focus();
+		var authenticateButton = $('<input type="button" value="Authenticate" />').click(authenticate_click).appendTo(dialogcontent).focus();
 		
 		function authenticate_click() {
 			var playername = playerNameInput.val();
 			var baseurl = document.URL.match(/^[^\?#]+/)[0];
 			// Might need to remember location and such...
-			window.location.href = baseurl + 'up/authentication/request?playername=' + escape(playername) + '&verifyurl=' + baseurl + 'up/authentication/verify' + '&originalurl=' + document.URL;
+			window.location.href = baseurl + 'up/authentication/request?playername=' + escape(playername) + '&verifyurl=' + escape(baseurl + 'up/authentication/verify') + '&originalurl=' + escape(document.URL);
 		}
 	}
 	/*

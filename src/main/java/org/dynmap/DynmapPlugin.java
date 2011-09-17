@@ -56,6 +56,8 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.dynmap.authentication.OpenIDProviderStore;
+import org.dynmap.authentication.OpenIDProviderStore.OpenIDProvider;
 import org.dynmap.authentication.UserStore;
 import org.dynmap.debug.Debug;
 import org.dynmap.debug.Debugger;
@@ -77,6 +79,7 @@ public class DynmapPlugin extends JavaPlugin {
     private Serve webServer = null;
     private MainServlet mainServlet = null;
     public MapManager mapManager = null;
+    public OpenIDProviderStore openIDProviders;
     public UserStore userStore;
     public PlayerList playerList;
     public ConfigurationNode configuration;
@@ -264,6 +267,7 @@ public class DynmapPlugin extends JavaPlugin {
         playerfacemgr = new PlayerFaces(this);
         
         userStore = new UserStore(this);
+        openIDProviders = new OpenIDProviderStore(this);
         
         loadWebserver();
 
@@ -845,8 +849,63 @@ public class DynmapPlugin extends JavaPlugin {
                     mapManager.resetStats(sender, args[1]);
             } else if (c.equals("setwebuser") && checkPlayerPermission(sender, "setwebuser")) {
                 if (player != null) {
-                    userStore.setOpenID(player.getName(), args[1]);
-                    sender.sendMessage("You can now log into Dynmap.");
+                    if (args.length == 1) {
+                        sender.sendMessage("This command is used to associate your Minecraft account with a web-account, like Google.");
+                        sender.sendMessage("/dynmap setwebuser providers:  Print the available OpenID providers.");
+                        sender.sendMessage("/dynmap setwebuser <provider>: Associate your account with the supplied OpenID provider.");
+                        sender.sendMessage("/dynmap setwebuser <provider> <username>: Associate your account with the supplied OpenID provider.");
+                        sender.sendMessage("/dynmap setwebuser http://<youropenid>/: Associate your account with the supplied OpenID URL.");
+                        sender.sendMessage("Example: /dynmap setwebuser google example@gmail.com");
+                    } else {
+                        // Requesting for available providers?
+                        if (args[1].equals("providers")) {
+                            // Print providers.
+                            StringBuffer sb = new StringBuffer();
+                            for(String providerName : openIDProviders.GetProviderNames()) {
+                                if (sb.length() > 0) {
+                                    sb.append(" ");
+                                }
+                                sb.append(providerName);
+                            }
+                            sender.sendMessage(sb.toString());
+                        } else {
+                            String openIdURL = null;
+                            // Using a predefined provider?
+                            OpenIDProvider provider = openIDProviders.Get(args[1]);
+                            if (provider != null) {
+                                if (provider.url.contains("{username}")) {
+                                    // Using a provider-URL with {username} pattern.
+                                    if (args.length == 2) {
+                                        sender.sendMessage("You must fill in an username for this OpenID provider: /dynmap setwebuser " + args[1] + " username");
+                                    } else {
+                                        openIdURL = provider.url.replace("{username}", args[2]);
+                                    }
+                                } else {
+                                    // Using a provider-URL without {username} pattern.
+                                    openIdURL = provider.url;
+                                }
+                            } else {
+                                // Using a OpenID-URL.
+                                openIdURL = args[1];
+                                if (!openIdURL.contains("://")) {
+                                    openIdURL = "http://" + openIdURL;
+                                }
+                                // Count number of '/'. If it is < 3, the URL only contains a domain name and must end with '/'.
+                                int slashCount = 0;
+                                for(int i=0;i<openIdURL.length();i++) {
+                                    if (openIdURL.charAt(i) == '/') {
+                                        slashCount++;
+                                    }
+                                }
+                                if (slashCount < 3) openIdURL = openIdURL + "/";
+                            }
+                            
+                            if (openIdURL != null) {
+                                userStore.setOpenID(player.getName(), openIdURL);
+                                sender.sendMessage("Your OpenID is set to '" + openIdURL + "'. You can now log in to Dynmap using '" + sender.getName() + "'.");
+                            }
+                        }
+                    }
                 }
             }
             return true;

@@ -1,0 +1,14 @@
+Google https://www.google.com/accounts/o8/id
+Yahoo http://me.yahoo.com/
+AOL http://openid.aol.com/{username}
+MyOpenID http://{username}.myopenid.com/
+LiveJournal http://{username}.livejournal.com/
+Flickr http://flickr.com/{username}/
+Technorati http://technorati.com/people/technorati/{username}/
+Wordpress http://{username}.wordpress.com/
+Blogger http://{username}.blogspot.com/
+Verisign http://{username}.pip.verisignlabs.com/
+Vidoop https://launchpad.net/~{username}
+ClaimID http://claimid.com/{username}
+ClickPass http://clickpass.com/public/{username}
+GoogleProfile http://www.google.com/profiles/{username}
