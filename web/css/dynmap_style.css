@@ -770,7 +770,6 @@
 
     -moz-border-radius: 3px;
     border-radius: 3px;
-    
 }
 
 .dynmap .mapMarker .markerIcon16x16 {
@@ -799,4 +798,27 @@
 
 .dynmap .coord-control .coord-control-value {
     font-weight: bold;
+}
+
+/***************************
+ * Authentication
+ */
+ 
+fieldset.authentication input {
+	border: 0px solid transparent;
+	border-radius: 4px;
+}
+fieldset.authentication input.logout {
+	float: right;
+}
+
+fieldset.authentication input.playername {
+	width: 120px;
+}
+fieldset.authentication input.login {
+	width: 50px;
+	margin-left: 2px;
+}
+fieldset.authentication span.playername {
+	padding: 3px;
 }

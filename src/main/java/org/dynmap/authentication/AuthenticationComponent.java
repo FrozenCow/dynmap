@@ -14,6 +14,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.dynmap.Component;
 import org.dynmap.ConfigurationNode;
 import org.dynmap.DynmapPlugin;
+import org.dynmap.servlet.JSONServlet;
+import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.openid4java.OpenIDException;
 import org.openid4java.association.AssociationSessionType;
@@ -57,12 +59,20 @@ public class AuthenticationComponent extends Component {
                 String verifyURL = req.getParameter("verifyurl");
                 String originalURL = req.getParameter("originalurl");
                 String playername = req.getParameter("playername");
+                boolean json = "1".equals(req.getParameter("json"));
                 User user = plugin.userStore.getUserByPlayerName(playername);
                 if (user == null) {
-                    resp.setContentType("text/plain");
-                    ServletOutputStream s = resp.getOutputStream();
-                    s.print("You have not yet associated your game character with this account. Use the in-game command '/dynmap setwebuser <username> <provider>' and try to login again here.");
-                    s.close();
+                    final String errorMessage = "You have not yet associated your game character with this account. Use the in-game command '/dynmap setwebuser <provider>' and try to login again here.";
+                    if (json) {
+                        JSONServlet.respond(resp, new JSONObject() {{
+                            this.put("error", errorMessage);
+                        }});
+                    } else {
+                        resp.setContentType("text/plain");
+                        ServletOutputStream s = resp.getOutputStream();
+                        s.print(errorMessage);
+                        s.close();
+                    }
                     return;
                 }
                 try {
@@ -70,36 +80,54 @@ public class AuthenticationComponent extends Component {
                     DiscoveryInformation discovered = consumerManager.associate(discoveries);
                     req.getSession().setAttribute("openid-disc", discovered);
                     req.getSession().setAttribute("authenticatinguser", user);
-                    AuthRequest authReq = consumerManager.authenticate(discovered, verifyURL + "?originalurl=" + URLEncoder.encode(originalURL, "UTF-8"));
+                    final AuthRequest authReq = consumerManager.authenticate(discovered, verifyURL + "?originalurl=" + URLEncoder.encode(originalURL, "UTF-8"));
                     
                     // For now, we don't need the Email-extension
                     /*FetchRequest fetch = FetchRequest.createFetchRequest();
                     fetch.addAttribute("email", "http://schema.openid.net/contact/email", true);
                     authReq.addExtension(fetch);*/
-                    
-                    if (! discovered.isVersion2() ) {
-                        resp.sendRedirect(authReq.getDestinationUrl(true));
-                    }
-                    else {
-                        Map<?, ?> m = (Map<?, ?>)authReq.getParameterMap();
-                        StringBuffer body = new StringBuffer();
-                        body.append("<html><body onload='document.forms[0].submit()'><form name='form' action='");
-                        body.append(authReq.getDestinationUrl(false));
-                        body.append("'>");
-                        for(Map.Entry<?, ?> entry : m.entrySet()) {
-                            body.append("<input type='hidden' name='");
-                            body.append(entry.getKey());
-                            body.append("' value='");
-                            body.append(entry.getValue());
-                            body.append("'/>");
+                    if (json) {
+                        // JSON mode so that javascript can handle this seamlessly.
+                        if (!discovered.isVersion2()) {
+                            JSONServlet.respond(resp, new JSONObject() {{
+                                this.put("url", authReq.getDestinationUrl(true));
+                            }});
+                        } else {
+                            final Map<?, ?> m = (Map<?, ?>)authReq.getParameterMap();
+                            JSONServlet.respond(resp, new JSONObject() {{
+                                this.put("url", authReq.getDestinationUrl(false));
+                                this.put("parameters", new JSONObject() {{
+                                    for(Map.Entry<?, ?> entry : m.entrySet()) {
+                                        this.put(entry.getKey(), entry.getValue());
+                                    }
+                                }});
+                            }});
                         }
-                        body.append("</form></body></html>");
-                        
-                        resp.setContentType("text/html");
-                        ServletOutputStream s = resp.getOutputStream();
-                        s.print(body.toString());
-                        s.close();
-                     }
+                    } else {
+                        if (! discovered.isVersion2() ) {
+                            resp.sendRedirect(authReq.getDestinationUrl(true));
+                        }
+                        else {
+                            Map<?, ?> m = (Map<?, ?>)authReq.getParameterMap();
+                            StringBuffer body = new StringBuffer();
+                            body.append("<html><body onload='document.forms[0].submit()'><form name='form' action='");
+                            body.append(authReq.getDestinationUrl(false));
+                            body.append("'>");
+                            for(Map.Entry<?, ?> entry : m.entrySet()) {
+                                body.append("<input type='hidden' name='");
+                                body.append(entry.getKey());
+                                body.append("' value='");
+                                body.append(entry.getValue());
+                                body.append("'/>");
+                            }
+                            body.append("</form></body></html>");
+                            
+                            resp.setContentType("text/html");
+                            ServletOutputStream s = resp.getOutputStream();
+                            s.print(body.toString());
+                            s.close();
+                         }
+                    }
                 } catch(Exception e) {
                     throw new RuntimeException(e);
                 }
