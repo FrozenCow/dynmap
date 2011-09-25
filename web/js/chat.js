@@ -1,11 +1,3 @@
-var ip;
-$.ajax({
-	type: "GET",
-	url: "//jsonip.appspot.com/?callback=?",
-	dataType: "jsonp",
-	success: function(getip) { ip = getip.ip; }
-	});
-
 componentconstructors['chat'] = function(dynmap, configuration) {
 	var me = this;
 	// Provides 'chat'-events by monitoring the world-updates.
@@ -18,27 +10,11 @@ componentconstructors['chat'] = function(dynmap, configuration) {
 		});
 	});
 	
-	if (dynmap.options.allowwebchat) {
-		// Accepts 'sendchat'-events to send chat messages to the server.
-		$(dynmap).bind('sendchat', function(event, message) {
-			var data = '{"name":'+JSON.stringify(ip?ip:"")+',"message":'+JSON.stringify(message)+'}';
-			$.ajax({
-				type: 'POST',
-				url: config.url.sendmessage,
-				data: data,
-				dataType: 'json',
-				success: function(response) {
-					//handle response
-					if(response) {
-						$(dynmap).trigger('chat', [{source: 'me', name: ip, text: message}]);
-					}
-				},
-				error: function(xhr) {
-					if (xhr.status === 403) {
-						$(dynmap).trigger('chat', [{source: 'me', name: 'Error', text: dynmap.options.spammessage.replace('%interval%', dynmap.options['webchat-interval'])}]);
-					}
-				}
-			});
+	$(dynmap).bind('sendchat', function(event, message) {
+		dynmap.sendWebMessage('chat', {
+			/* TODO */
+			//name: 'An anonymous username',
+			message: message
 		});
-	}
+	});
 };

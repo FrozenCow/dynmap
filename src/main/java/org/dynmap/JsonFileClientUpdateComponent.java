@@ -13,6 +13,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.bukkit.World;
+import org.dynmap.authentication.User;
 import org.dynmap.web.Json;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -26,7 +27,6 @@ public class JsonFileClientUpdateComponent extends ClientUpdateComponent {
     protected long currentTimestamp = 0;
     protected long lastTimestamp = 0;
     protected JSONParser parser = new JSONParser();
-    private Boolean hidewebchatip;
 
     private HashMap<String,String> useralias = new HashMap<String,String>();
     private int aliasindex = 1;
@@ -34,17 +34,12 @@ public class JsonFileClientUpdateComponent extends ClientUpdateComponent {
     private Charset cs_utf8 = Charset.forName("UTF-8");
     public JsonFileClientUpdateComponent(final DynmapPlugin plugin, final ConfigurationNode configuration) {
         super(plugin, configuration);
-        final boolean allowwebchat = configuration.getBoolean("allowwebchat", false);
         jsonInterval = (long)(configuration.getFloat("writeinterval", 1) * 1000);
-        hidewebchatip = configuration.getBoolean("hidewebchatip", false);
         MapManager.scheduleDelayedJob(new Runnable() {
             @Override
             public void run() {
                 currentTimestamp = System.currentTimeMillis();
                 writeUpdates();
-                if (allowwebchat) {
-                    handleWebChat();
-                }
                 handleWebMessages();
                 lastTimestamp = currentTimestamp;
                 MapManager.scheduleDelayedJob(this, jsonInterval);
@@ -54,10 +49,6 @@ public class JsonFileClientUpdateComponent extends ClientUpdateComponent {
             @Override
             public void triggered(JSONObject t) {
                 s(t, "jsonfile", true);
-                s(t, "allowwebchat", allowwebchat);
-                
-                // For 'sendmessage.php'
-                s(t, "webchat-interval", configuration.getFloat("webchat-interval", 5.0f));
             }
         });
         plugin.events.addListener("initialized", new Event.Listener<Object>() {
@@ -156,54 +147,6 @@ public class JsonFileClientUpdateComponent extends ClientUpdateComponent {
         
         plugin.events.<Object>trigger("clientupdateswritten", null);
     }
-    
-    protected void handleWebChat() {
-        File webchatFile = getStandaloneFile("dynmap_webchat.json");
-        if (webchatFile.exists() && lastTimestamp != 0) {
-            JSONArray jsonMsgs = null;
-            try {
-                Reader inputFileReader = new InputStreamReader(new FileInputStream(webchatFile), cs_utf8);
-                jsonMsgs = (JSONArray) parser.parse(inputFileReader);
-                inputFileReader.close();
-            } catch (IOException ex) {
-                Log.severe("Exception while reading JSON-file.", ex);
-            } catch (ParseException ex) {
-                Log.severe("Exception while parsing JSON-file.", ex);
-            }
-
-            if (jsonMsgs != null) {
-                Iterator<?> iter = jsonMsgs.iterator();
-                while (iter.hasNext()) {
-                    JSONObject o = (JSONObject) iter.next();
-                    String ts = String.valueOf(o.get("timestamp"));
-                    if(ts.equals("null")) ts = "0";
-                    if (Long.parseLong(ts) >= (lastTimestamp)) {
-                        String name = String.valueOf(o.get("name"));
-                        if(hidewebchatip) {
-                            String n = useralias.get(name);
-                            if(n == null) { /* Make ID */
-                                n = String.format("web-%03d", aliasindex);
-                                aliasindex++;
-                                useralias.put(name, n);
-                            }
-                            name = n;
-                        }
-                        String message = String.valueOf(o.get("message"));
-                        webChat(name, message);
-                    }
-                }
-            }
-        }
-    }
-    
-    protected void webChat(String name, String message) {
-        if(plugin.mapManager == null) return;
-        // TODO: Change null to something meaningful.
-        plugin.mapManager.pushUpdate(new Client.ChatMessage("web", null, name, message, null));
-        Log.info(unescapeString(plugin.configuration.getString("webprefix", "\u00A2[WEB] ")) + name + ": " + unescapeString(plugin.configuration.getString("websuffix", "\u00A7f")) + message);
-        ChatEvent event = new ChatEvent("web", name, message);
-        plugin.events.trigger("webchat", event);
-    }
 
     protected void handleWebMessages() {
         File webmessagesFile = getStandaloneFile("dynmap_webmessages.json");
@@ -228,7 +171,11 @@ public class JsonFileClientUpdateComponent extends ClientUpdateComponent {
                     if (Long.parseLong(ts) >= (lastTimestamp)) {
                         String type = String.valueOf(o.get("type"));
                         JSONObject message = (JSONObject)o.get("message");
-                        plugin.events.trigger("webmessage", new WebMessageEvent(type, message));
+                        String playerName = String.valueOf(o.get("playerName"));
+                        User user = playerName != null ? new User(playerName) : null;
+                        WebMessageEvent evt = new WebMessageEvent(type, message, user);
+                        plugin.events.trigger("webmessage", evt);
+                        plugin.events.trigger("webmessage_" + type, evt);
                     }
                 }
             }

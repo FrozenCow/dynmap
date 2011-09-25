@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.dynmap.DynmapPlugin;
 import org.dynmap.Log;
 import org.dynmap.WebMessageEvent;
+import org.dynmap.authentication.User;
 import org.dynmap.web.HttpStatus;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
@@ -46,8 +47,10 @@ public class SendWebMessageServlet extends HttpServlet {
         String messageType = (String)messageTypeObject;
         JSONObject message = (JSONObject)messageObject;
 
-        Log.info("WebMessage(" + messageType + "):" + message.toJSONString());
-        plugin.events.trigger("webmessage", new WebMessageEvent(messageType, message));
-        plugin.events.trigger("webmessage_"+messageType, new WebMessageEvent(messageType, message));
+        User user = (User)req.getSession().getAttribute("user");
+        
+        Log.info("WebMessage(" + messageType + ") from " + (user == null ? "anonymous" : user.PlayerName)  + ":" + message.toJSONString());
+        plugin.events.trigger("webmessage", new WebMessageEvent(messageType, message, user));
+        plugin.events.trigger("webmessage_"+messageType, new WebMessageEvent(messageType, message, user));
     }
 }

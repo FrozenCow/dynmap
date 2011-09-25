@@ -7,25 +7,23 @@ componentconstructors['chatbox'] = function(dynmap, configuration) {
 		.addClass('messagelist')
 		.appendTo(chat);
 	
-	if (dynmap.options.allowwebchat) {
-		var chatinput = $('<input/>')
-			.addClass('chatinput')
-			.attr({
-				id: 'chatinput',
-				type: 'text',
-				value: ''
-			})
-			.keydown(function(event) {
-				if (event.keyCode == '13') {
-					event.preventDefault();
-					if(chatinput.val() != '') {
-						$(dynmap).trigger('sendchat', [chatinput.val()]);
-						chatinput.val('');
-					}
+	var chatinput = $('<input/>')
+		.addClass('chatinput')
+		.attr({
+			id: 'chatinput',
+			type: 'text',
+			value: ''
+		})
+		.keydown(function(event) {
+			if (event.keyCode == '13') {
+				event.preventDefault();
+				if(chatinput.val() != '') {
+					$(dynmap).trigger('sendchat', [chatinput.val()]);
+					chatinput.val('');
 				}
-			})
-			.appendTo(chat);
-	}
+			}
+		})
+		.appendTo(chat);
 	
 	var addrow = function(row) {
 		setTimeout(function() { row.remove(); }, (configuration.messagettl * 1000));

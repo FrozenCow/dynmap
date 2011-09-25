@@ -342,7 +342,7 @@ public class DynmapPlugin extends JavaPlugin {
         addServlet("/tiles", new org.dynmap.servlet.FileServlet(tilesDirectory.getAbsolutePath()));
         addServlet("/up/configuration", new org.dynmap.servlet.ClientConfigurationServlet(this));
     }
-    
+
     public void addServlet(String path, HttpServlet servlet) {
         mainServlet.addServlet(path, servlet);
     }

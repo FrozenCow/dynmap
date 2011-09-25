@@ -13,13 +13,26 @@ public class SimpleWebChatComponent extends Component {
 
     public SimpleWebChatComponent(final DynmapPlugin plugin, final ConfigurationNode configuration) {
         super(plugin, configuration);
-        plugin.events.addListener("webchat", new Event.Listener<ChatEvent>() {
+        plugin.events.addListener("webmessage_chat", new Event.Listener<WebMessageEvent>() {
             @Override
-            public void triggered(ChatEvent t) {
-                DynmapWebChatEvent evt = new DynmapWebChatEvent(t.source, t.name, t.message);
+            public void triggered(WebMessageEvent t) {
+                if (t.user == null && !configuration.getBoolean("allowanonymouschat", false)) {
+                    return;
+                }
+                String userName = t.user != null
+                        ? t.user.PlayerName
+                        : (t.message.containsKey("name")
+                            ? String.valueOf(t.message.get("name"))
+                            : "Anonymous");
+                String message = String.valueOf(t.message.get("message"));
+                
+                DynmapWebChatEvent evt = new DynmapWebChatEvent("web", userName, message);
                 plugin.getServer().getPluginManager().callEvent(evt);
-                if(evt.isCancelled() == false)
-                    plugin.getServer().broadcastMessage(unescapeString(plugin.configuration.getString("webprefix", "\u00A72[WEB] ")) + t.name + ": " + unescapeString(plugin.configuration.getString("websuffix", "\u00A7f")) + t.message);
+                if(!evt.isCancelled()) {
+                    plugin.getServer().broadcastMessage(unescapeString(plugin.configuration.getString("webprefix", "\u00A72[WEB] ")) + userName + ": " + unescapeString(plugin.configuration.getString("websuffix", "\u00A7f")) + message);
+                    
+                    plugin.mapManager.pushUpdate(new Client.ChatMessage("web", "", userName, message, userName));
+                }
             }
         });
         
