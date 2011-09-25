@@ -71,6 +71,10 @@ import org.dynmap.permissions.OpPermissions;
 import org.dynmap.permissions.PermissionProvider;
 import org.dynmap.servlet.ClientConfigurationServlet;
 import org.dynmap.servlet.MainServlet;
+import org.eclipse.jetty.server.handler.ContextHandler;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 
 import Acme.Serve.FileServlet;
 import Acme.Serve.Serve;
@@ -319,6 +323,11 @@ public class DynmapPlugin extends JavaPlugin {
         	Log.verboseinfo("Web server is not permitting symbolic links");        	
         
         // TODO: Make use of checkbannedips and maxconnections.
+        
+        org.eclipse.jetty.server.Server s = new org.eclipse.jetty.server.Server();
+        ServletHandler handler = new org.eclipse.jetty.servlet.ServletHandler();
+        s.setHandler(handler);
+        
         
         // Set up the webserver.
         webServer = new Serve(arguments, System.out);
