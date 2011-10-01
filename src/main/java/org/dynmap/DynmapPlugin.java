@@ -304,8 +304,6 @@ public class DynmapPlugin extends JavaPlugin {
         arguments.put(Serve.ARG_BINDADDRESS, configuration.getString("webserver-bindaddress", "0.0.0.0"));
         arguments.put(Serve.ARG_PORT, configuration.getInteger("webserver-port", 8123));
         arguments.put(Serve.ARG_MAX_CONN_USE, Math.max(2, configuration.getInteger("max-sessions", 30)));
-        arguments.put(Serve.ARG_KEEPALIVE, false);
-        //arguments.put(Serve.ARG_KEEPALIVE_TIMEOUT, 5000);
         
         boolean allow_symlinks = configuration.getBoolean("allow-symlinks", false);
         boolean checkbannedips = configuration.getBoolean("check-banned-ips", true);
