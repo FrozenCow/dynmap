@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.naming.Context;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -25,7 +24,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletResponse;
 
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
@@ -35,7 +33,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.CustomEventListener;
 import org.bukkit.event.Event;
-import org.bukkit.event.Event.Type;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockBurnEvent;
@@ -47,7 +44,6 @@ import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
-import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityListener;
 import org.bukkit.event.player.PlayerChatEvent;
@@ -61,7 +57,6 @@ import org.bukkit.event.world.ChunkPopulateEvent;
 import org.bukkit.event.world.SpawnChangeEvent;
 import org.bukkit.event.world.WorldListener;
 import org.bukkit.event.world.WorldLoadEvent;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -78,11 +73,7 @@ import org.dynmap.permissions.BukkitPermissions;
 import org.dynmap.permissions.NijikokunPermissions;
 import org.dynmap.permissions.OpPermissions;
 import org.dynmap.permissions.PermissionProvider;
-import org.dynmap.servlet.ClientConfigurationServlet;
-import org.dynmap.servlet.MainServlet;
-
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
@@ -365,9 +356,9 @@ public class DynmapPlugin extends JavaPlugin {
                 }
             }
         }*/
-        
-        addServlet("/*", new org.dynmap.servlet.FileServlet(getFile(getWebPath()).getAbsolutePath()));
-        addServlet("/tiles/*", new org.dynmap.servlet.FileServlet(tilesDirectory.getAbsolutePath()));
+        ;
+        addServlet("/*", new org.dynmap.servlet.FileServlet(getFile(getWebPath()).getAbsolutePath(), allow_symlinks));
+        addServlet("/tiles/*", new org.dynmap.servlet.FileServlet(tilesDirectory.getAbsolutePath(), allow_symlinks));
         addServlet("/up/configuration", new org.dynmap.servlet.ClientConfigurationServlet(this));
     }
 

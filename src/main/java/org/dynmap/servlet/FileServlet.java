@@ -55,6 +55,7 @@ public class FileServlet extends HttpServlet {
     // Properties ---------------------------------------------------------------------------------
 
     private String basePath = null;
+    private boolean allow_symlinks = true;
     private String[] indexFiles = new String[] {
         "index.html"
     };
@@ -64,8 +65,9 @@ public class FileServlet extends HttpServlet {
     public FileServlet() {
     }
     
-    public FileServlet(String basePath) {
-        this.basePath = basePath;
+    public FileServlet(String basePath, boolean allow_symlinks) {
+        this.basePath = new File(basePath).getAbsolutePath();
+        this.allow_symlinks = allow_symlinks;
     }
     
     /**
@@ -74,7 +76,7 @@ public class FileServlet extends HttpServlet {
      */
     public void init() throws ServletException {
         if (basePath == null) {
-            setBasePath(getServletContext().getRealPath(getInitParameter("basePath")));
+            setBasePath(new File(getServletContext().getRealPath(getInitParameter("basePath"))).getAbsolutePath());
         }
     }
     
@@ -120,6 +122,31 @@ public class FileServlet extends HttpServlet {
         processRequest(request, response, true);
     }
 
+    private static String getNormalizedPath(String p) {
+        p = p.replace('\\', '/');
+        String[] tok = p.split("/");
+        int i, j;
+        for(i = 0, j = 0; i < tok.length; i++) {
+            if((tok[i] == null) || (tok[i].length() == 0) || (tok[i].equals("."))) {
+                tok[i] = null;
+            }
+            else if(tok[i].equals("..")) {
+                if(j > 0) { j--; tok[j] = null;  }
+                tok[i] = null;
+            }
+            else {
+                tok[j] = tok[i];
+                j++;
+            }
+        }
+        String path = "";
+        for(i = 0; i < j; i++) {
+            if(tok[i] != null)
+                path = path + "/" + tok[i];
+        }
+        return path;
+    }
+    
     /**
      * Process the actual request.
      * @param request The request to be processed.
@@ -135,7 +162,10 @@ public class FileServlet extends HttpServlet {
 
         // Get requested file by path info.
         String requestedFile = request.getPathInfo();
-
+        
+        if (requestedFile != null)
+            requestedFile = getNormalizedPath(requestedFile);
+        
         // Check if file is actually supplied to the request URL.
         if (requestedFile == null) {
             // Do your thing if the file is not supplied to the request URL.
@@ -146,15 +176,18 @@ public class FileServlet extends HttpServlet {
 
         // URL-decode the file name (might contain spaces and on) and prepare file object.
         File file = new File(basePath, URLDecoder.decode(requestedFile, "UTF-8"));
-
-        // Check if file actually exists in filesystem.
-        if (!file.exists()) {
-            // Do your thing if the file appears to be non-existing.
-            // Throw an exception, or send 404, or show default/warning page, or just ignore it.
+        
+        String fpath = null;
+        if(allow_symlinks)
+            fpath = file.getAbsolutePath();
+        else
+            fpath = file.getCanonicalPath();
+        
+        if (!fpath.startsWith(basePath)) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-        
+
         if (file.isDirectory()) {
             File directory = file;
             for (int i = 0; i < indexFiles.length; i++) {
@@ -162,6 +195,14 @@ public class FileServlet extends HttpServlet {
                 if (file.isFile())
                     break;
             }
+        }
+
+        // Check if file actually exists in filesystem.
+        if (!file.exists()) {
+            // Do your thing if the file appears to be non-existing.
+            // Throw an exception, or send 404, or show default/warning page, or just ignore it.
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
         }
 
         // Prepare some variables. The ETag is an unique identifier of the file.
