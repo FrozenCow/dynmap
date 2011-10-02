@@ -36,9 +36,10 @@ public class SimpleWebChatComponent extends Component {
             }
         });
         
-        plugin.events.addListener("buildclientconfiguration", new Event.Listener<JSONObject>() {
+        plugin.events.addListener("buildclientconfiguration", new Event.Listener<BuildJsonEvent>() {
             @Override
-            public void triggered(JSONObject t) {
+            public void triggered(BuildJsonEvent event) {
+                JSONObject t = event.getJson();
                 s(t, "allowchat", configuration.getBoolean("allowchat", false));
             }
         });

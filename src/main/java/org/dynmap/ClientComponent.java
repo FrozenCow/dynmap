@@ -12,17 +12,17 @@ public class ClientComponent extends Component {
 
     public ClientComponent(final DynmapPlugin plugin, final ConfigurationNode configuration) {
         super(plugin, configuration);
-        plugin.events.addListener("buildclientconfiguration", new Event.Listener<JSONObject>() {
+        plugin.events.addListener("buildclientconfiguration", new Event.Listener<BuildJsonEvent>() {
             @Override
-            public void triggered(JSONObject root) {
-                buildClientConfiguration(root);
+            public void triggered(BuildJsonEvent event) {
+                buildClientConfiguration(event);
             }
         });
     }
     
-    protected void buildClientConfiguration(JSONObject root) {
+    protected void buildClientConfiguration(BuildJsonEvent event) {
         JSONObject o = createClientConfiguration();
-        a(root, "components", o);
+        a(event.getJson(), "components", o);
     }
     
     protected JSONObject createClientConfiguration() {

@@ -45,9 +45,10 @@ public class JsonFileClientUpdateComponent extends ClientUpdateComponent {
                 MapManager.scheduleDelayedJob(this, jsonInterval);
             }}, jsonInterval);
         
-        plugin.events.addListener("buildclientconfiguration", new Event.Listener<JSONObject>() {
+        plugin.events.addListener("buildclientconfiguration", new Event.Listener<BuildJsonEvent>() {
             @Override
-            public void triggered(JSONObject t) {
+            public void triggered(BuildJsonEvent event) {
+                JSONObject t = event.getJson();
                 s(t, "jsonfile", true);
             }
         });

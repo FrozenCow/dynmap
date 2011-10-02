@@ -8,10 +8,13 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.dynmap.BuildJsonEvent;
 import org.dynmap.DynmapPlugin;
 import org.dynmap.DynmapWorld;
 import org.dynmap.Event;
 import org.json.simple.JSONObject;
+import static org.dynmap.Utils.*;
+import org.dynmap.authentication.User;
 
 public class ClientConfigurationServlet extends HttpServlet {
     private static final long serialVersionUID = 9106801553080522469L;
@@ -29,20 +32,25 @@ public class ClientConfigurationServlet extends HttpServlet {
     
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-        if (cachedConfiguration == null) {
-            JSONObject configurationObject = new JSONObject();
-            plugin.events.<JSONObject>trigger("buildclientconfiguration", configurationObject);
+        User user = as(User.class, req.getSession().getAttribute("user"));
+        byte[] outputBytes = cachedConfiguration;
+        if (user == null || outputBytes == null) {
+            BuildJsonEvent buildEvent = new BuildJsonEvent(user, new JSONObject());
+            plugin.events.<BuildJsonEvent>trigger("buildclientconfiguration", buildEvent);
             
-            String s = configurationObject.toJSONString();
-
-            cachedConfiguration = s.getBytes("UTF-8");
+            String s = buildEvent.getJson().toJSONString();
+            
+            outputBytes = s.getBytes("UTF-8");
+        }
+        if (user == null && outputBytes == null) {
+            cachedConfiguration = outputBytes;
         }
         String dateStr = new Date().toString();
         res.addHeader("Date", dateStr);
         res.setContentType("text/plain; charset=utf-8");
         res.addHeader("Expires", "Thu, 01 Dec 1994 16:00:00 GMT");
         res.addHeader("Last-modified", dateStr);
-        res.setContentLength(cachedConfiguration.length);
-        res.getOutputStream().write(cachedConfiguration);
+        res.setContentLength(outputBytes.length);
+        res.getOutputStream().write(outputBytes);
     }
 }

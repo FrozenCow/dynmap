@@ -6,6 +6,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerListener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.PluginManager;
+import org.dynmap.BuildJsonEvent;
 import org.dynmap.ChatEvent;
 import org.dynmap.Client;
 import org.dynmap.Component;
@@ -34,9 +35,10 @@ public class HeroWebChatComponent extends Component {
             }
         });
         
-        plugin.events.addListener("buildclientconfiguration", new Event.Listener<JSONObject>() {
+        plugin.events.addListener("buildclientconfiguration", new Event.Listener<BuildJsonEvent>() {
             @Override
-            public void triggered(JSONObject t) {
+            public void triggered(BuildJsonEvent event) {
+                JSONObject t = event.getJson();
                 s(t, "allowchat", true);
             }
         });

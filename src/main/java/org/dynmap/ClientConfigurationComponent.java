@@ -9,9 +9,10 @@ import org.json.simple.JSONObject;
 public class ClientConfigurationComponent extends Component {
     public ClientConfigurationComponent(final DynmapPlugin plugin, ConfigurationNode configuration) {
         super(plugin, configuration);
-        plugin.events.<JSONObject>addListener("buildclientconfiguration", new Listener<JSONObject>() {
+        plugin.events.<BuildJsonEvent>addListener("buildclientconfiguration", new Listener<BuildJsonEvent>() {
             @Override
-            public void triggered(JSONObject t) {
+            public void triggered(BuildJsonEvent event) {
+                JSONObject t = event.getJson();
                 ConfigurationNode c = plugin.configuration;
                 s(t, "updaterate", c.getFloat("updaterate", 1.0f));
                 s(t, "showplayerfacesinmenu", c.getBoolean("showplayerfacesinmenu", true));
