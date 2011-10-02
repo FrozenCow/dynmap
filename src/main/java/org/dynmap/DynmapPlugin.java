@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -13,7 +14,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.naming.Context;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletResponse;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -71,16 +80,16 @@ import org.dynmap.permissions.OpPermissions;
 import org.dynmap.permissions.PermissionProvider;
 import org.dynmap.servlet.ClientConfigurationServlet;
 import org.dynmap.servlet.MainServlet;
+
+import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.ContextHandler;
+import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
-import Acme.Serve.FileServlet;
-import Acme.Serve.Serve;
-
 public class DynmapPlugin extends JavaPlugin {
-    private Serve webServer = null;
+    private Server webServer = null;
     private MainServlet mainServlet = null;
     public MapManager mapManager = null;
     public OpenIDProviderStore openIDProviders;
@@ -304,10 +313,11 @@ public class DynmapPlugin extends JavaPlugin {
     }
 
     public void loadWebserver() {
-        Map arguments = new HashMap(20);
-        arguments.put(Serve.ARG_BINDADDRESS, configuration.getString("webserver-bindaddress", "0.0.0.0"));
-        arguments.put(Serve.ARG_PORT, configuration.getInteger("webserver-port", 8123));
-        arguments.put(Serve.ARG_MAX_CONN_USE, Math.max(2, configuration.getInteger("max-sessions", 30)));
+        webServer = new Server(new InetSocketAddress(configuration.getString("webserver-bindaddress", "0.0.0.0"), configuration.getInteger("webserver-port", 8123)));
+        ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+        context.setContextPath("/");
+        webServer.setHandler(context);
+        //arguments.put(Serve.ARG_MAX_CONN_USE, Math.max(2, configuration.getInteger("max-sessions", 30)));
         
         boolean allow_symlinks = configuration.getBoolean("allow-symlinks", false);
         boolean checkbannedips = configuration.getBoolean("check-banned-ips", true);
@@ -328,14 +338,23 @@ public class DynmapPlugin extends JavaPlugin {
         ServletHandler handler = new org.eclipse.jetty.servlet.ServletHandler();
         s.setHandler(handler);
         
-        
-        // Set up the webserver.
-        webServer = new Serve(arguments, System.out);
-        mainServlet = new MainServlet();
-        webServer.addServlet("/", mainServlet);
+        context.addFilter(new FilterHolder(new Filter() {
+            @Override
+            public void init(FilterConfig filterConfig) throws ServletException { }
+            
+            @Override
+            public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+                HttpServletResponse resp = (HttpServletResponse)response;
+                // Set custom headers.
+                //resp.setHeader("", "");
+            }
+            
+            @Override
+            public void destroy() { }
+        }), "/*", null);
         
         /* Load customized response headers, if any */
-        ConfigurationNode custhttp = configuration.getNode("http-response-headers");
+        /*ConfigurationNode custhttp = configuration.getNode("http-response-headers");
         if(custhttp != null) {
             for(String k : custhttp.keySet()) {
                 String v = custhttp.getString(k);
@@ -343,10 +362,10 @@ public class DynmapPlugin extends JavaPlugin {
                     mainServlet.customHeaders.add(new MainServlet.Header(k, v));
                 }
             }
-        }
+        }*/
         
-        addServlet("/", new org.dynmap.servlet.FileServlet(getFile(getWebPath()).getAbsolutePath()));
-        addServlet("/tiles", new org.dynmap.servlet.FileServlet(tilesDirectory.getAbsolutePath()));
+        addServlet("/*", new org.dynmap.servlet.FileServlet(getFile(getWebPath()).getAbsolutePath()));
+        addServlet("/tiles/*", new org.dynmap.servlet.FileServlet(tilesDirectory.getAbsolutePath()));
         addServlet("/up/configuration", new org.dynmap.servlet.ClientConfigurationServlet(this));
     }
 
@@ -356,10 +375,10 @@ public class DynmapPlugin extends JavaPlugin {
     
     public void startWebserver() {
         try {
-            webServer.runInBackground();
+            webServer.start();
         } catch (Exception e) {
             //Log.severe("Failed to start WebServer on " + webServer.getConnectors()[0].getHost() + ":" + webServer.getConnectors()[0].getLocalPort() + "!");
-            Log.severe("Failed to start WebServer on " + webServer.getInitParameter(Serve.ARG_BINDADDRESS) + ":" + webServer.getInitParameter(Serve.ARG_PORT) + "!");
+            Log.severe("Failed to start WebServer!", e);
         }
     }
 
@@ -381,7 +400,7 @@ public class DynmapPlugin extends JavaPlugin {
 
         if (webServer != null) {
             try {
-                webServer.stopBackground();
+                webServer.stop();
             } catch (Exception e) {
                 e.printStackTrace();
             }
