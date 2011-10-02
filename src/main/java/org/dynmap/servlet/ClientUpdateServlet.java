@@ -26,10 +26,19 @@ public class ClientUpdateServlet extends HttpServlet {
         this.plugin = plugin;
     }
 
+    Pattern updatePathPattern = Pattern.compile("/([^/]+)/([0-9]*)");
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String worldName = String.valueOf(req.getAttribute("world"));
-        String timeKey = String.valueOf(req.getAttribute("time"));
+        String path = req.getPathInfo();
+        Matcher match = updatePathPattern.matcher(path);
+        
+        if (!match.matches()) {
+            resp.sendError(404, "World not found");
+            return;
+        }
+        
+        String worldName = match.group(1);
+        String timeKey = match.group(2);
         
         DynmapWorld dynmapWorld = null;
         if(plugin.mapManager != null) {

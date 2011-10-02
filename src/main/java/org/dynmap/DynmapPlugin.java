@@ -90,7 +90,7 @@ import org.eclipse.jetty.servlet.ServletHolder;
 
 public class DynmapPlugin extends JavaPlugin {
     private Server webServer = null;
-    private MainServlet mainServlet = null;
+    private ServletContextHandler webServerContextHandler = null;
     public MapManager mapManager = null;
     public OpenIDProviderStore openIDProviders;
     public UserStore userStore;
@@ -317,6 +317,7 @@ public class DynmapPlugin extends JavaPlugin {
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
         context.setContextPath("/");
         webServer.setHandler(context);
+        webServerContextHandler = context;
         //arguments.put(Serve.ARG_MAX_CONN_USE, Math.max(2, configuration.getInteger("max-sessions", 30)));
         
         boolean allow_symlinks = configuration.getBoolean("allow-symlinks", false);
@@ -347,6 +348,7 @@ public class DynmapPlugin extends JavaPlugin {
                 HttpServletResponse resp = (HttpServletResponse)response;
                 // Set custom headers.
                 //resp.setHeader("", "");
+                chain.doFilter(request, response);
             }
             
             @Override
@@ -370,7 +372,8 @@ public class DynmapPlugin extends JavaPlugin {
     }
 
     public void addServlet(String path, HttpServlet servlet) {
-        mainServlet.addServlet(path, servlet);
+        ServletHolder holder = new ServletHolder(servlet);
+        webServerContextHandler.getServletHandler().addServletWithMapping(holder, path);
     }
     
     public void startWebserver() {
