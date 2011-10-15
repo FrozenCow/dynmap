@@ -59,18 +59,25 @@ public class AuthenticationComponent extends Component {
         for(int i = 0; i < players.length; i++) {
             User u = userStore.getUserByPlayerName(players[i].getName());
             if (u != null) {
-                u.Player = players[i];
+                u.updatePermissions(players[i]);
             }
         }
         // When new players join, remember the 'Player' object in 'User'.
         plugin.registerEvent(Event.Type.PLAYER_LOGIN, new PlayerListener() {
             @Override
-            public void onPlayerLogin(PlayerLoginEvent event) {
-                super.onPlayerLogin(event);
-                User u = userStore.getUserByPlayerName(event.getPlayer().getName());
-                if (u != null) {
-                    u.Player = event.getPlayer();
-                }
+            public void onPlayerLogin(final PlayerLoginEvent event) {
+                // We can't get the permissions from the Player at this point: the Permission-plugin might have
+                // registered the PlayerLoginEvent -after- Dynmap, so the permissions are not guarenteed to be filled.
+                // They are filled the next iteration, so we'll schedule for that.
+                plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+                    @Override
+                    public void run() {
+                        User u = userStore.getUserByPlayerName(event.getPlayer().getName());
+                        if (u != null) {
+                            u.updatePermissions(event.getPlayer());
+                        }
+                    }
+                });
             }
         });
     }
