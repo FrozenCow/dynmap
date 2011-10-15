@@ -11,6 +11,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
+import org.bukkit.event.player.PlayerListener;
+import org.bukkit.event.player.PlayerLoginEvent;
 import org.dynmap.Component;
 import org.dynmap.ConfigurationNode;
 import org.dynmap.DynmapPlugin;
@@ -35,9 +39,43 @@ public class AuthenticationComponent extends Component {
     HttpServlet authenticationVerifyServlet;
     HttpServlet authenticationTestServlet;
     
+    public final OpenIDProviderStore openIDProviderStore;
+    public final UserStore userStore;
+    
     public AuthenticationComponent(final DynmapPlugin plugin, ConfigurationNode configuration) throws ConsumerException {
         super(plugin, configuration);
+
+        openIDProviderStore = new OpenIDProviderStore(plugin);
+        userStore = new UserStore(plugin);
+        setupUserStore();
+        
         consumerManager = new ConsumerManager();
+        setupAuthenticationServlets();
+    }
+    
+    void setupUserStore() {
+        // Remember the currently online 'Player' objects in 'User'.
+        Player[] players = plugin.getServer().getOnlinePlayers();
+        for(int i = 0; i < players.length; i++) {
+            User u = userStore.getUserByPlayerName(players[i].getName());
+            if (u != null) {
+                u.Player = players[i];
+            }
+        }
+        // When new players join, remember the 'Player' object in 'User'.
+        plugin.registerEvent(Event.Type.PLAYER_LOGIN, new PlayerListener() {
+            @Override
+            public void onPlayerLogin(PlayerLoginEvent event) {
+                super.onPlayerLogin(event);
+                User u = userStore.getUserByPlayerName(event.getPlayer().getName());
+                if (u != null) {
+                    u.Player = event.getPlayer();
+                }
+            }
+        });
+    }
+    
+    void setupAuthenticationServlets() {
         consumerManager.setAssociations(new InMemoryConsumerAssociationStore());
         consumerManager.setNonceVerifier(new InMemoryNonceVerifier(5000));
         consumerManager.setMinAssocSessEnc(AssociationSessionType.DH_SHA256);
@@ -60,7 +98,7 @@ public class AuthenticationComponent extends Component {
                 String originalURL = req.getParameter("originalurl");
                 String playername = req.getParameter("playername");
                 boolean json = "1".equals(req.getParameter("json"));
-                User user = plugin.userStore.getUserByPlayerName(playername);
+                User user = userStore.getUserByPlayerName(playername);
                 if (user == null) {
                     final String errorMessage = "You have not yet associated your game character with this account. Use the in-game command '/dynmap setwebuser <provider>' and try to login again here.";
                     if (json) {

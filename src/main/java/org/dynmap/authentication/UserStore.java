@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.bukkit.entity.Player;
 import org.dynmap.DynmapPlugin;
 import org.dynmap.Log;
 import org.dynmap.utils.NewMapChunkCache;
@@ -106,8 +107,14 @@ public class UserStore {
         saveUsers();
         return true;
     }
-    
-    public synchronized void setOpenID(String playerName, String openId) {
+
+    public synchronized  User setOpenID(Player player, String openId) {
+        User user = setOpenID(player.getName(), openId);
+        user.Player = player;
+        return user;
+    }
+
+    public synchronized User setOpenID(String playerName, String openId) {
         User user = getUserByPlayerName(playerName);
         if (user == null) {
             user = new User(playerName);
@@ -121,5 +128,6 @@ public class UserStore {
             openidUserMap.put(openId, user);
         }
         saveUsers();
+        return user;
     }
 }

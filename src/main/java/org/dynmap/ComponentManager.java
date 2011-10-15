@@ -44,4 +44,17 @@ public class ComponentManager {
             return new ArrayList<Component>();
         return list;
     }
+
+    public <T> T getComponent(Class<T> type) {
+        String key = type.toString();
+        List<Component> components = componentLookup.get(key);
+        if (components == null || components.size() == 0) {
+            return null;
+        }
+        Component result = components.get(0);
+        if (result == null) {
+            return null;
+        }
+        return (T)result;
+    }
 }

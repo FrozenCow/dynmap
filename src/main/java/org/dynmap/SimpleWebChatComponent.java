@@ -16,7 +16,10 @@ public class SimpleWebChatComponent extends Component {
         plugin.events.addListener("webmessage_chat", new Event.Listener<WebMessageEvent>() {
             @Override
             public void triggered(WebMessageEvent t) {
-                if (t.user == null && !configuration.getBoolean("allowanonymouschat", false)) {
+                boolean hasPermission = t.user == null
+                        ? configuration.getBoolean("allowanonymouschat", false)
+                        : t.user.hasPermission("dynmap.webchat");
+                if (!hasPermission) {
                     return;
                 }
                 String userName = t.user != null
