@@ -3,6 +3,7 @@ package org.dynmap.authentication;
 import org.bukkit.entity.Player;
 import org.bukkit.permissions.PermissibleBase;
 import org.bukkit.permissions.PermissionAttachment;
+import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 
@@ -38,26 +39,8 @@ public class User implements JSONAware {
     // TODO: Have a proper way to access offline player permissions.
     public void updatePermissions(Player player) {
         permissions.clear();
-        List<PermissionAttachment> attachments = null;
-        try {
-            Field permField = Class.forName("org.bukkit.craftbukkit.entity.CraftHumanEntity").getDeclaredField("perm");
-            permField.setAccessible(true);
-            PermissibleBase pb = (PermissibleBase)permField.get(player);
-            Field attachmentsField = PermissibleBase.class.getDeclaredField("attachments");
-            attachmentsField.setAccessible(true);
-            attachments = (List<PermissionAttachment>)attachmentsField.get(pb);
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (NoSuchFieldException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        if (attachments != null) {
-            for(int i = 0; i < attachments.size(); i++) {
-                permissions.putAll(attachments.get(i).getPermissions());
-            }
-        }
+        for(PermissionAttachmentInfo attachmentInfo : player.getEffectivePermissions())
+            permissions.put(attachmentInfo.getPermission(), attachmentInfo.getValue());
     }
 
     @Override
