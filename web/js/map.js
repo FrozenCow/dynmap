@@ -151,10 +151,14 @@ DynMap.prototype = {
 				
 			sidebar = me.sidebar = $('<div/>')
 					.addClass('sidebar ' + pincls);
-
+			
+			var scrollcontainer = $('<div/>')
+				.addClass('scrollcontainer')
+				.appendTo(sidebar);
+			
 			panel = $('<div/>')
 				.addClass('panel')
-				.appendTo(sidebar);
+				.appendTo(scrollcontainer);
 		
 			// Pin button.
 			pinbutton = $('<div/>')
@@ -212,55 +216,13 @@ DynMap.prototype = {
 			});
 		});
 		
-		// The scrollbuttons
-		// we need to show/hide them depending: if (me.playerlist.scrollHeight() > me.playerlist.innerHeight()) or something.
-		var upbtn = $('<div/>')
-		.addClass('scrollup')
-		.bind('mousedown mouseup', function(event){ 
-		    if(event.type == 'mousedown'){
-				playerlist.animate({"scrollTop": "-=300px"}, 3000, 'linear');
-		    }else{
-		        playerlist.stop(); 
-		    }
-		});
-		var downbtn = $('<div/>')
-		.addClass('scrolldown')
-		.bind('mousedown mouseup', function(event){ 
-		    if(event.type == 'mousedown'){ 
-				playerlist.animate({"scrollTop": "+=300px"}, 3000, 'linear');
-		    }else{ 
-		        playerlist.stop(); 
-		    }
-		});
-		
 		// The Player List
 		var playerlist;
 		$('<fieldset/>')
 			.append($('<legend/>').text('Players'))
-			.append(upbtn)
-			.append(me.playerlist = playerlist = $('<ul/>').addClass('playerlist')
-				.bind('mousewheel', function(event, delta){ 
-					this.scrollTop -= (delta * 10);
-					event.preventDefault();
-				})
-			)
-			.append(downbtn)
+			.append(me.playerlist = playerlist = $('<ul/>').addClass('playerlist'))
 			.appendTo(panel);
 		
-		var updateHeight = function() {
-			playerlist.height(sidebar.innerHeight() - (playerlist.offset().top - worldlist.offset().top) - 64); // here we need a fix to avoid the static value, but it works fine this way :P
-			var scrollable = playerlist.scrollHeight() > playerlist.height();
-			upbtn.toggle(scrollable);
-			downbtn.toggle(scrollable);
-		};
-		updateHeight();
-		$(window).resize(updateHeight);
-		$(dynmap).bind('playeradded', function() {
-			updateHeight();
-		});
-		$(dynmap).bind('playerremoved', function() {
-			updateHeight();
-		});
 		// The Compass
 		var compass = $('<div/>')
 			.addClass('compass')
