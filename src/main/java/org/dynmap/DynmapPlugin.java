@@ -380,17 +380,6 @@ public class DynmapPlugin extends JavaPlugin implements DynmapAPI {
         boolean checkbannedips = configuration.getBoolean("check-banned-ips", true);
         int maxconnections = configuration.getInteger("max-sessions", 30);
         if(maxconnections < 2) maxconnections = 2;
-        /* Load customized response headers, if any */
-        ConfigurationNode custhttp = configuration.getNode("http-response-headers");
-        HashMap<String, String> custhdrs = new HashMap<String,String>();
-        if(custhttp != null) {
-            for(String k : custhttp.keySet()) {
-                String v = custhttp.getString(k);
-                if(v != null) {
-                    custhdrs.put(k, v);
-                }
-            }
-        }
 
         if(allow_symlinks)
         	Log.verboseinfo("Web server is permitting symbolic links");
@@ -401,6 +390,8 @@ public class DynmapPlugin extends JavaPlugin implements DynmapAPI {
         ServletHandler handler = new org.eclipse.jetty.servlet.ServletHandler();
         s.setHandler(handler);
 
+        /* Load customized response headers, if any */
+        final ConfigurationNode custhttp = configuration.getNode("http-response-headers");
         context.addFilter(new FilterHolder(new Filter() {
             @Override
             public void init(FilterConfig filterConfig) throws ServletException { }
@@ -408,7 +399,16 @@ public class DynmapPlugin extends JavaPlugin implements DynmapAPI {
             @Override
             public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
                 HttpServletResponse resp = (HttpServletResponse)response;
-                // TODO: Set custom headers.
+
+                if(custhttp != null) {
+                    for(String k : custhttp.keySet()) {
+                        String v = custhttp.getString(k);
+                        if(v != null) {
+                            resp.setHeader(k, v);
+                        }
+                    }
+                }
+
                 chain.doFilter(request, response);
             }
 
