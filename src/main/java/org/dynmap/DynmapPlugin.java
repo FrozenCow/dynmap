@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -377,7 +378,6 @@ public class DynmapPlugin extends JavaPlugin implements DynmapAPI {
         webServerContextHandler = context;
 
         boolean allow_symlinks = configuration.getBoolean("allow-symlinks", false);
-        boolean checkbannedips = configuration.getBoolean("check-banned-ips", true);
         int maxconnections = configuration.getInteger("max-sessions", 30);
         if(maxconnections < 2) maxconnections = 2;
 
@@ -389,6 +389,58 @@ public class DynmapPlugin extends JavaPlugin implements DynmapAPI {
         org.eclipse.jetty.server.Server s = new org.eclipse.jetty.server.Server();
         ServletHandler handler = new org.eclipse.jetty.servlet.ServletHandler();
         s.setHandler(handler);
+
+        /* Check for banned IPs */
+        boolean checkbannedips = configuration.getBoolean("check-banned-ips", true);
+        if (checkbannedips) {
+            context.addFilter(new FilterHolder(new Filter() {
+                private HashSet<String> banned_ips = new HashSet<String>();
+                private HashSet<String> banned_ips_notified = new HashSet<String>();
+                private long last_loaded = 0;
+                private long lastmod = 0;
+                private static final long BANNED_RELOAD_INTERVAL = 15000;	/* Every 15 seconds */
+
+                @Override
+                public void init(FilterConfig filterConfig) throws ServletException { }
+
+                @Override
+                public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+                    HttpServletResponse resp = (HttpServletResponse)response;
+                    String ipaddr = request.getRemoteAddr();
+                    if (isIpBanned(ipaddr)) {
+                        Log.info("Rejected connection by banned IP address - " + ipaddr);
+                        resp.sendError(403);
+                    } else {
+                        chain.doFilter(request, response);
+                    }
+                }
+
+                private void loadBannedIPs() {
+                    banned_ips.clear();
+                    banned_ips_notified.clear();
+                    banned_ips.addAll(getServer().getIPBans());
+                }
+
+                /* Return true if address is banned */
+                public boolean isIpBanned(String ipaddr) {
+                    long t = System.currentTimeMillis();
+                    if((t < last_loaded) || ((t-last_loaded) > BANNED_RELOAD_INTERVAL)) {
+                        loadBannedIPs();
+                        last_loaded = t;
+                    }
+                    if(banned_ips.contains(ipaddr)) {
+                        if(!banned_ips_notified.contains(ipaddr)) {
+                            banned_ips_notified.add(ipaddr);
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+
+                @Override
+                public void destroy() { }
+            }), "/*", null);
+        }
 
         /* Load customized response headers, if any */
         final ConfigurationNode custhttp = configuration.getNode("http-response-headers");
